@@ -1,5 +1,7 @@
 FROM nginx/unit:1.19.0-python3.7
 
+ENV soap_url=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl
+
 COPY requirements.txt /config/
 
 RUN apt update && apt install -y python3-pip    \

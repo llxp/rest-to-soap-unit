@@ -3,9 +3,9 @@ from zeep import Client, Plugin, transports
 from lxml import etree
 import zeep
 import json
+import os
 
-#url = 'https://graphical.weather.gov/xml/SOAP_server/ndfdXMLserver.php?wsdl'
-url = 'http://www.thomas-bayer.com/axis2/services/BLZService?wsdl'
+url = os.getenv('soap_url', None)
 
 class Transport(transports.Transport):
     def post(self, address, message, headers):
@@ -16,14 +16,17 @@ class Transport(transports.Transport):
         return response
 
 application = Flask(__name__)
-client = Client(url, transport=Transport())
+if url is not None:
+    client = Client(url, transport=Transport())
 
 @application.route(
     '/api/<string:action>', # rest endpoint listens on /api/*
     methods=['POST']) # allow only post requests
 def index(action: str):
+    if client is None:
+        return '', 500
     try:
-        if len(request.data) > 0:
+        if request.method == 'POST' and len(request.data) > 0:
             # if the body is not empty, try to parse the data as json data
             parameter = request.json
         else:
