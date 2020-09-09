@@ -12,4 +12,4 @@ COPY app.py /www/
 
 COPY config.json /docker-entrypoint.d/
 
-EXPOSE 8080
+EXPOSE 8000
