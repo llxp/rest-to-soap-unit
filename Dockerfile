@@ -1,6 +1,6 @@
 FROM nginx/unit:1.19.0-python3.7
 
-ENV soap_url=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl
+ENV SOAP_URL=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl
 
 COPY requirements.txt /config/
 

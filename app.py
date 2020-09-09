@@ -1,27 +1,31 @@
 from flask import Flask, request, jsonify
-from zeep import Client, Plugin, transports
-from lxml import etree
+from zeep import Client, transports
 import zeep
-import json
 import os
 
-url = os.getenv('soap_url', None)
 
+# Custom Transport class to be able to get the
+# raw response after the xml response parsing
 class Transport(transports.Transport):
     def post(self, address, message, headers):
         self.xml_request = message.decode('utf-8')
         response = super().post(address, message, headers)
+        # assign response to transport object
+        # to be able to fetch last http response code
         self.response = response
-        
+
         return response
 
+
+url = os.getenv('SOAP_URL', None)
 application = Flask(__name__)
 if url is not None:
     client = Client(url, transport=Transport())
 
+
 @application.route(
-    '/api/<string:action>', # rest endpoint listens on /api/*
-    methods=['POST']) # allow only post requests
+    '/api/<string:action>',   # rest endpoint listens on /api/*
+    methods=['GET', 'POST'])  # allow only post requests
 def index(action: str):
     if client is None:
         return '', 500
@@ -34,7 +38,7 @@ def index(action: str):
     except Exception as e:
         # return http status 400 on parsing error
         return jsonify(str(e)), 400
-    with client.settings(strict=True,xsd_ignore_sequence_order=True):
+    with client.settings(strict=True, xsd_ignore_sequence_order=True):
         # find the soap action provided by the wsdl
         method = getattr(client.service, action)
         try:
