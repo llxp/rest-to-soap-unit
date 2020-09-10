@@ -1,2 +1,3 @@
 flask
 zeep
+flask-swagger-ui
