@@ -53,3 +53,11 @@ services:
     environment:
       - SOAP_URL=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl
 ```
+
+# Swagger-UI
+The swagger-ui can be accessed on the /doc endpoint
+so e.g. open http://127.0.0.1:8080/doc in the browser and the swagger-ui will open
+
+# Swagger-Configuration file
+The swagger-/openapi-configuration file can be retrieved on the /help endpoint
+so e.g. open http://127.0.0.1:8080/help in the browser and the swagger-configuration file will load
