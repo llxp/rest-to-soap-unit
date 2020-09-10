@@ -1,9 +1,7 @@
 
 # rest-to-soap-unit
 
-a simple python/flask rest api hosted on nginx unit for proxying/transforming a rest request to an internal soap interface
-
-<br />
+a simple python/flask rest api hosted on nginx unit for proxying/transforming a rest request to an internal soap interface__
 ![Diagram](diagram.png)
 
 # Building
