@@ -32,9 +32,36 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 # add the swagger-ui blueprint to the flask application
 application.register_blueprint(swaggerui_blueprint, url_prefix='/doc')
 
-if url is not None:
-    # create the soap client object and configure using the wsdl url
-    client = Client(url, transport=Transport())
+def create_client(session):
+    if url is not None:
+        # create the soap client object and configure using the wsdl url
+        return Client(url, transport=Transport(session=session))
+    return None
+
+def get_request_session(headers):
+    session = Session()
+    session.headers = headers
+    return session
+
+def get_parameter(request):
+    if request.method == 'POST' and len(request.data) > 0:
+        # if the body is not empty, try to parse the data as json data
+        return request.json
+    return None
+
+def get_wsdl_service(client, service, port):
+    if service != 'default' and port != 'default':
+        return client.bind(service, port)
+    elif service != 'default' and port == 'default':
+        return client.bind(service, None)
+    elif service == 'default' and port != 'default':
+        return client.bind(None, port)
+    return client.service
+
+def execute_method(parameter):
+    if parameter is None:
+        return method()
+    return method(**parameter)
 
 
 @application.route(
@@ -43,35 +70,23 @@ if url is not None:
     # allow only post requests
     methods=['GET', 'POST'])
 def index(service: str, port: str, action: str):
+    session = get_request_session(request.headers)
+    client = create_client(session)
     if client is None:
         # return 500 and no content, when the client failed to initialize
-        return '', 500
+        return jsonify('internal error'), 500
     try:
-        if request.method == 'POST' and len(request.data) > 0:
-            # if the body is not empty, try to parse the data as json data
-            parameter = request.json
-        else:
-            parameter = None
+        parameter = get_parameter(request)
     except Exception as e:
         # return http status 400 on parsing error
         return jsonify(str(e)), 400
     with client.settings(strict=True, xsd_ignore_sequence_order=True):
         try:
-            if service != 'default' and port != 'default':
-                service_obj = client.bind(service, port)
-            elif service != 'default' and port == 'default':
-                service_obj = client.bind(service, None)
-            elif service == 'default' and port != 'default':
-                service_obj = client.bind(None, port)
-            else:
-                service_obj = client.service
+            service_obj = get_wsdl_service(client, service, port)
             # find the soap action provided by the wsdl
             method = getattr(service_obj, action)
             # execute the soap action
-            if parameter is None:
-                result = method()
-            else:
-                result = method(**parameter)
+            result = execute_method(parameter)
         except AttributeError as e:
             return jsonify(str(e)), 400
         except zeep.exceptions.Fault as e:
@@ -84,8 +99,8 @@ def index(service: str, port: str, action: str):
             # missing parameter for the soap action
             return jsonify(str(e)), 400
         # parse response object and return json instead of xml
-        a = zeep.helpers.serialize_object(result)
-        return jsonify(a), client.transport.response.status_code
+        zeep_result = zeep.helpers.serialize_object(result)
+        return jsonify(zeep_result), client.transport.response.status_code
 
 
 """
