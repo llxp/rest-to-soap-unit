@@ -186,6 +186,11 @@ def generate_openapi_entry(input_parameter, output_parameter):
     '/help/<string:service>/<string:port>',
     defaults={'port': 'all'})
 def help(service: str = 'all', port: str = 'all'):
+    session = get_request_session(request.headers)
+    client = create_client(session)
+    if client is None:
+        # return 500 and no content, when the client failed to initialize
+        return jsonify('internal error'), 500
     with client.settings(strict=True, xsd_ignore_sequence_order=True):
         interface = {
             'openapi': '3.0.0',
