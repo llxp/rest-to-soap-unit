@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from zeep import Client, transports
+from requests import Session
 import zeep
 import os
 from flask_swagger_ui import get_swaggerui_blueprint
