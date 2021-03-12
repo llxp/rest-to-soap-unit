@@ -20,6 +20,7 @@ class Transport(transports.Transport):
 
 
 url = os.getenv('SOAP_URL')
+verify_ssl = os.getenv('VERIFY_SSL', False)
 # create the flask application object
 application = Flask(__name__)
 # swagger-ui config
@@ -41,7 +42,9 @@ def create_client(session):
 
 def get_request_session(headers):
     session = Session()
-    session.headers = headers
+    session.verify = verify_ssl
+    for header in headers:
+        session.headers[header[0]] = header[1]
     return session
 
 def get_parameter(request):
