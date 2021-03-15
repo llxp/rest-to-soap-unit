@@ -4,23 +4,13 @@ from requests import Session
 import zeep
 import os
 from flask_swagger_ui import get_swaggerui_blueprint
-
-
-# Custom Transport class to be able to get the
-# raw response after the xml response parsing
-class Transport(transports.Transport):
-    def post(self, address, message, headers):
-        self.xml_request = message.decode('utf-8')
-        response = super().post(address, message, headers)
-        # assign response to transport object
-        # to be able to fetch last http response code
-        self.response = response
-
-        return response
+from urllib.parse import urlparse
 
 
 url = os.getenv('SOAP_URL')
 verify_ssl = os.getenv('VERIFY_SSL', False)
+parsed_uri = urlparse(url)
+host = '{uri.netloc}'.format(uri=parsed_uri)
 # create the flask application object
 application = Flask(__name__)
 # swagger-ui config
@@ -34,6 +24,28 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 # add the swagger-ui blueprint to the flask application
 application.register_blueprint(swaggerui_blueprint, url_prefix='/doc')
 
+
+def remove_prefix(text, prefix):
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text  # or whatever
+
+
+# Custom Transport class to be able to get the
+# raw response after the xml response parsing
+class Transport(transports.Transport):
+    def post(self, address, message, headers):
+        parsed_address = urlparse(address)
+        address = parsed_address._replace(netloc=host).geturl()
+        self.xml_request = message.decode('utf-8')
+        response = super().post(address, message, headers)
+        # assign response to transport object
+        # to be able to fetch last http response code
+        self.response = response
+
+        return response
+
+
 def create_client(session):
     if url is not None:
         # create the soap client object and configure using the wsdl url
@@ -43,8 +55,10 @@ def create_client(session):
 def get_request_session(headers):
     session = Session()
     session.verify = verify_ssl
+    header_list = ['Authorization']
     for header in headers:
-        session.headers[header[0]] = header[1]
+        if header[0] in header_list:
+            session.headers[header[0]] = header[1]
     return session
 
 def get_parameter(request):
@@ -62,7 +76,7 @@ def get_wsdl_service(client, service, port):
         return client.bind(None, port)
     return client.service
 
-def execute_method(parameter):
+def execute_method(method, parameter):
     if parameter is None:
         return method()
     return method(**parameter)
@@ -90,7 +104,7 @@ def index(service: str, port: str, action: str):
             # find the soap action provided by the wsdl
             method = getattr(service_obj, action)
             # execute the soap action
-            result = execute_method(parameter)
+            result = execute_method(method, parameter)
         except AttributeError as e:
             return jsonify(str(e)), 400
         except zeep.exceptions.Fault as e:
