@@ -129,7 +129,7 @@ def index(service: str, port: str, action: str):
 """
 
 
-def parseElements(elements):
+def parseElements(elements, array=False):
     """
     source: https://stackoverflow.com/questions/50089400/introspecting-a-wsdl-with-python-zeep
     """
@@ -138,9 +138,16 @@ def parseElements(elements):
         all_elements[name] = {}
         # all_elements[name]['required'] = not element.is_optional
         if hasattr(element.type, 'elements'):
-            all_elements[name]['type'] = 'object'
-            all_elements[name]['properties'] = parseElements(
-                element.type.elements)
+            if hasattr(element.type, '_array_type') and str(element.type).startswith('ArrayOf'):
+                all_elements[name]['type'] = 'array'
+                all_elements[name]['items'] = parseElements(element.type.elements, True)
+            elif array == True:
+                del all_elements[name]
+                all_elements['properties'] = parseElements(element.type.elements)
+            else:
+                all_elements[name]['type'] = 'object'
+                all_elements[name]['properties'] = parseElements(
+                    element.type.elements)
         else:
             # TODO add mapping of special objects if needed,
             # otherwise all objects not treated here default to string
