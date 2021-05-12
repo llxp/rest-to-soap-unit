@@ -1,0 +1,20 @@
+[Unit]
+Description=rest-to-soap-unit %I container
+After=docker.service
+Wants=network-online.target docker.socket
+Requires=docker.socket
+
+[Service]
+Restart=never
+#StartLimitIntervalSec=1
+#StartLimitBurst=100
+WorkingDirectory=/root/
+EnvironmentFile=/etc/rest-to-soap-unit/%I.env
+ExecStartPre=/bin/bash -c "/usr/bin/docker network inspect rest-to-soap-unit-network 2> /dev/null || /usr/bin/docker network create -d bridge rest-to-soap-unit-network"
+ExecStartPre=/bin/bash -c "/usr/bin/docker container inspect rest-to-soap-unit_%I 2> /dev/null || /usr/bin/docker run -d --net rest-to-soap-unit-network --name rest-to-soap-unit_%I --hostname rest-to-soap-unit_%I --env-file /etc/rest-to-soap-unit/%I.env -e HTTP_PROXY= -e HTTPS_PROXY= -e http_proxy= -e https_proxy= -p 0.0.0.0:$PUBLISH_PORT:8000 rest-to-soap-unit"
+ExecStart=/usr/bin/docker start -a rest-to-soap-unit_%I
+ExecStop=/usr/bin/docker stop -t 10 rest-to-soap-unit_%I
+ExecStopPost=/usr/bin/docker rm rest-to-soap-unit_%I
+
+[Install]
+WantedBy=multi-user.target

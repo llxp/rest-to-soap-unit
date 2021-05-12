@@ -3,6 +3,7 @@ from zeep import Client, transports
 from requests import Session
 import zeep
 import os
+import json
 from flask_swagger_ui import get_swaggerui_blueprint
 from urllib.parse import urlparse
 
@@ -95,21 +96,36 @@ def index(service: str, port: str, action: str):
         return jsonify('internal error'), 500
     try:
         parameter = get_parameter(request)
+        #raise Exception(parameter)
     except Exception as e:
         # return http status 400 on parsing error
         return jsonify(str(e)), 400
-    with client.settings(strict=True, xsd_ignore_sequence_order=True):
+    with client.settings(strict=False, xsd_ignore_sequence_order=True):
         try:
             service_obj = get_wsdl_service(client, service, port)
             # find the soap action provided by the wsdl
             method = getattr(service_obj, action)
             # execute the soap action
+            #raise Exception(json.dumps(parameter))
+            print(method)
             result = execute_method(method, parameter)
         except AttributeError as e:
             return jsonify(str(e)), 400
         except zeep.exceptions.Fault as e:
             # error in the exection of the requested soap action
             return jsonify(str(e)), client.transport.response.status_code
+        except TypeError as e:
+            #raise Exception(client.get_type('ns0:OrderHeaderItem'))
+            parsed_input_elements = ""
+            for service2 in client.wsdl.services.values():
+                for port2 in service2.ports.values():
+                    for operation2 in port2.binding._operations.values():
+                        print(operation2)
+                        #print(port2)
+                        #print(service2)
+                        if service2.name == service and port2.name == port and operation2.name == action:
+                            parsed_input_elements = parseElements(operation2.input.body.type.elements)
+            return jsonify(str(parsed_input_elements) + str(e)), 400
         except ValueError as e:
             # The String type doesn't accept collections as value ...
             return jsonify(str(e)), 400
@@ -169,10 +185,10 @@ def parseElements(elements, array=False):
     return all_elements
 
 
-def generate_openapi_entry(input_parameter, output_parameter):
+def generate_openapi_entry(api_path, input_parameter, output_parameter):
     return {
-        'summary': '',  # TODO Add a request summary
-        'description': '',  # TODO Add a request description
+        'summary': api_path,  # TODO Add a request summary
+        #'description': '',  # TODO Add a request description
         'requestBody': {
             'required': True,
             'content': {
@@ -186,7 +202,7 @@ def generate_openapi_entry(input_parameter, output_parameter):
         'responses': {
             '200': {
                 # TODO Add a response description
-                'description': '',
+                'description': 'OK',
                 'content': {
                     'application/json': {
                         'schema': {
@@ -240,6 +256,7 @@ def help(service: str = 'all', port: str = 'all'):
                         operation.output.body.type.elements)
                     operations[operation_name]['post'] = \
                         generate_openapi_entry(
+                            operation_name,
                             parsed_input_elements,
                             parsed_output_elements)
                     operations[operation_name]['post']['tags'] = [service.name]
