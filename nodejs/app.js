@@ -12,6 +12,7 @@ require('http').IncomingMessage = IncomingMessage
 const express = require('express');
 const bodyParser = require('body-parser');
 const soap = require('strong-soap').soap;
+const util = require('util');
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 const url = process.env['SOAP_URL'];
@@ -23,6 +24,19 @@ app.use(bodyParser.json());
 app.post('/api/:service/:port/:action', function (req, res) {
   try {
     soap.createClient(url, function(err, client) {
+      client.on('soapError', function(err) {
+        console.error(err);
+      });
+      //client.on('request', function(envelope) {
+      //  console.error(util.inspect(envelope, {showHidden: false, depth: null}));
+      });
+      //client.on('response', function (responseBody, incomingMessage) {
+      //  console.error(responseBody);
+      //  console.error(incomingMessage);
+      //});
+      //console.error(req.body);
+      //const description = client.describe();
+      //console.log(JSON.stringify(description.IF_Savvy2Savvy_REQ.IF_Savvy2Savvy_REQSoap12.SCYCIF_Savvy2Savvy_Request));
       service = client[req.params.service];
       if (service) {
         port = service[req.params.port];

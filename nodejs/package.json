@@ -6,10 +6,11 @@
   "dependencies": {
     "apiconnect-wsdl": "^1.8.31",
     "express": "^4.17.1",
+    "node-fetch": "^2.6.1",
     "soap": "^0.37.0",
     "strong-soap": "^3.2.1",
     "swagger-ui-express": "^4.1.6",
-    "unit-http": "^1.23.0"
+    "unit-http": "1.23.0"
   },
   "devDependencies": {},
   "scripts": {

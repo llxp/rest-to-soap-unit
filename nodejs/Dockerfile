@@ -2,11 +2,11 @@ FROM nginx/unit:1.23.0-node15
 
 COPY package.json /www/package.json
 #COPY package-lock.json /www/package-lock.json
-COPY node_modules /www/node_modules
+#COPY node_modules /www/node_modules
 
 WORKDIR /www/
 
-#RUN npm install
+RUN npm install
 
 COPY app.js /www/
 
