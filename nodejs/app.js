@@ -29,7 +29,7 @@ app.post('/api/:service/:port/:action', function (req, res) {
       });
       //client.on('request', function(envelope) {
       //  console.error(util.inspect(envelope, {showHidden: false, depth: null}));
-      });
+      //});
       //client.on('response', function (responseBody, incomingMessage) {
       //  console.error(responseBody);
       //  console.error(incomingMessage);
