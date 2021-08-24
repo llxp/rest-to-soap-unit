@@ -87,12 +87,12 @@ services:
 # Swagger-UI
 
 The swagger-ui can be accessed on the /doc endpoint
-so e.g. open [http://127.0.0.1:8080/doc](http://127.0.0.1:9090/doc) in the browser and the swagger-ui will open
+so e.g. open [http://127.0.0.1:9090/doc](http://127.0.0.1:9090/doc) in the browser and the swagger-ui will open
 
 # Swagger-Configuration file
 
 The swagger-/openapi-configuration file can be retrieved on the /help endpoint
-so e.g. open [http://127.0.0.1:8080/help](http://127.0.0.1:9090/help) in the browser and the swagger-configuration file will load
+so e.g. open [http://127.0.0.1:9090/help](http://127.0.0.1:9090/help) in the browser and the swagger-configuration file will load
 
 # BUG IN ZEEP
 
