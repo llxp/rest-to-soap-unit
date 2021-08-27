@@ -12,7 +12,7 @@ require('http').IncomingMessage = IncomingMessage
 const express = require('express');
 const bodyParser = require('body-parser');
 const soap = require('strong-soap').soap;
-const util = require('util');
+//const util = require('util');
 
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 const url = process.env['SOAP_URL'];
@@ -29,7 +29,7 @@ app.post('/api/:service/:port/:action', function (req, res) {
       });
       //client.on('request', function(envelope) {
       //  console.error(util.inspect(envelope, {showHidden: false, depth: null}));
-      });
+      //});
       //client.on('response', function (responseBody, incomingMessage) {
       //  console.error(responseBody);
       //  console.error(incomingMessage);
