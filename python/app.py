@@ -1,14 +1,14 @@
 from flask import Flask, request, jsonify
 from zeep import Client, transports
-from requests import Session
-import zeep
+from requests import Session, session
 import os
-import json
+import sys
 from flask_swagger_ui import get_swaggerui_blueprint
 from urllib.parse import urlparse
+session.trust_env = False
 
 
-url = os.getenv('SOAP_URL')
+url = os.getenv('SOAP_URL', '')
 verify_ssl = os.getenv('VERIFY_SSL', False)
 parsed_uri = urlparse(url)
 host = '{uri.netloc}'.format(uri=parsed_uri)
@@ -26,12 +26,6 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 application.register_blueprint(swaggerui_blueprint, url_prefix='/doc')
 
 
-def remove_prefix(text, prefix):
-    if text.startswith(prefix):
-        return text[len(prefix):]
-    return text  # or whatever
-
-
 # Custom Transport class to be able to get the
 # raw response after the xml response parsing
 class Transport(transports.Transport):
@@ -39,6 +33,7 @@ class Transport(transports.Transport):
         parsed_address = urlparse(address)
         address = parsed_address._replace(netloc=host).geturl()
         self.xml_request = message.decode('utf-8')
+        print(message.decode('utf-8'), file=sys.stderr)
         response = super().post(address, message, headers)
         # assign response to transport object
         # to be able to fetch last http response code
@@ -48,10 +43,12 @@ class Transport(transports.Transport):
 
 
 def create_client(session):
+    session.trust_env = False
     if url is not None:
         # create the soap client object and configure using the wsdl url
         return Client(url, transport=Transport(session=session))
     return None
+
 
 def get_request_session(headers):
     session = Session()
@@ -61,80 +58,6 @@ def get_request_session(headers):
         if header[0] in header_list:
             session.headers[header[0]] = header[1]
     return session
-
-def get_parameter(request):
-    if request.method == 'POST' and len(request.data) > 0:
-        # if the body is not empty, try to parse the data as json data
-        return request.json
-    return None
-
-def get_wsdl_service(client, service, port):
-    if service != 'default' and port != 'default':
-        return client.bind(service, port)
-    elif service != 'default' and port == 'default':
-        return client.bind(service, None)
-    elif service == 'default' and port != 'default':
-        return client.bind(None, port)
-    return client.service
-
-def execute_method(method, parameter):
-    if parameter is None:
-        return method()
-    return method(**parameter)
-
-
-@application.route(
-    # rest endpoint listens on /api/*
-    '/api/<string:service>/<string:port>/<string:action>',
-    # allow only post requests
-    methods=['GET', 'POST'])
-def index(service: str, port: str, action: str):
-    session = get_request_session(request.headers)
-    client = create_client(session)
-    if client is None:
-        # return 500 and no content, when the client failed to initialize
-        return jsonify('internal error'), 500
-    try:
-        parameter = get_parameter(request)
-        #raise Exception(parameter)
-    except Exception as e:
-        # return http status 400 on parsing error
-        return jsonify(str(e)), 400
-    with client.settings(strict=False, xsd_ignore_sequence_order=True):
-        try:
-            service_obj = get_wsdl_service(client, service, port)
-            # find the soap action provided by the wsdl
-            method = getattr(service_obj, action)
-            # execute the soap action
-            #raise Exception(json.dumps(parameter))
-            print(method)
-            result = execute_method(method, parameter)
-        except AttributeError as e:
-            return jsonify(str(e)), 400
-        except zeep.exceptions.Fault as e:
-            # error in the exection of the requested soap action
-            return jsonify(str(e)), client.transport.response.status_code
-        except TypeError as e:
-            #raise Exception(client.get_type('ns0:OrderHeaderItem'))
-            parsed_input_elements = ""
-            for service2 in client.wsdl.services.values():
-                for port2 in service2.ports.values():
-                    for operation2 in port2.binding._operations.values():
-                        print(operation2)
-                        #print(port2)
-                        #print(service2)
-                        if service2.name == service and port2.name == port and operation2.name == action:
-                            parsed_input_elements = parseElements(operation2.input.body.type.elements)
-            return jsonify(str(parsed_input_elements) + str(e)), 400
-        except ValueError as e:
-            # The String type doesn't accept collections as value ...
-            return jsonify(str(e)), 400
-        except zeep.exceptions.ValidationError as e:
-            # missing parameter for the soap action
-            return jsonify(str(e)), 400
-        # parse response object and return json instead of xml
-        zeep_result = zeep.helpers.serialize_object(result)
-        return jsonify(zeep_result), client.transport.response.status_code
 
 
 """
@@ -147,19 +70,25 @@ def index(service: str, port: str, action: str):
 
 def parseElements(elements, array=False):
     """
-    source: https://stackoverflow.com/questions/50089400/introspecting-a-wsdl-with-python-zeep
+    source:
+    https://stackoverflow.com/questions/50089400/introspecting-a-wsdl-with-python-zeep
     """
     all_elements = {}
     for name, element in elements:
         all_elements[name] = {}
         # all_elements[name]['required'] = not element.is_optional
         if hasattr(element.type, 'elements'):
-            if hasattr(element.type, '_array_type') and str(element.type).startswith('ArrayOf'):
+            if (
+                hasattr(element.type, '_array_type') and
+                str(element.type).startswith('ArrayOf')
+            ):
                 all_elements[name]['type'] = 'array'
-                all_elements[name]['items'] = parseElements(element.type.elements, True)
-            elif array == True:
+                all_elements[name]['items'] = parseElements(
+                    element.type.elements, True)
+            elif array is True:
                 del all_elements[name]
-                all_elements['properties'] = parseElements(element.type.elements)
+                all_elements['properties'] = parseElements(
+                    element.type.elements)
             else:
                 all_elements[name]['type'] = 'object'
                 all_elements[name]['properties'] = parseElements(
@@ -188,7 +117,7 @@ def parseElements(elements, array=False):
 def generate_openapi_entry(api_path, input_parameter, output_parameter):
     return {
         'summary': api_path,  # TODO Add a request summary
-        #'description': '',  # TODO Add a request description
+        # 'description': '',  # TODO Add a request description
         'requestBody': {
             'required': True,
             'content': {
@@ -272,13 +201,14 @@ def help(service: str = 'all', port: str = 'all'):
 """
 
 
-@application.route('/refresh', methods=['GET'])
+@application.route('/test', methods=['GET'])
 def refresh():
     if url is not None:
         # create the soap client object and configure using the wsdl url
-        global client
         try:
-            client = Client(url, transport=Transport())
+            session = get_request_session(request.headers)
+            # test, if the connection to the backend successful
+            create_client(session)
             return jsonify(True), 200
         except Exception as e:
             return jsonify(e), 500

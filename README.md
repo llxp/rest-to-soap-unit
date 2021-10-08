@@ -10,13 +10,14 @@ a simple python/flask rest api hosted on nginx unit for proxying/transforming a 
 adjust the url of the wsdl file in the Dockerfile (or later using the environment variable SOAP_URL):
 
 ```bash
+# The url is just an example
 SOAP_URL=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl
 ```
 
 Next build the docker image:
 
 ```bash
-docker build -t rest-to-soap-unit nodejs/
+docker build -t rest-to-soap-unit php/
 docker build -t rest-to-soap-unit-helper python/
 ```
 
@@ -25,8 +26,8 @@ docker build -t rest-to-soap-unit-helper python/
 To run the docker container:
 
 ```bash
-docker run --name rest-to-soap-unit -d -p 127.0.0.1:8080:8000 rest-to-soap-unit
-docker run --name rest-to-soap-unit-helper -d -p 127.0.0.1:9090:8000 rest-to-soap-unit-helper
+docker run --name rest-to-soap-unit -d -p 127.0.0.1:8080:8000 -e SOAP_URL=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl rest-to-soap-unit
+docker run --name rest-to-soap-unit-helper -d -p 127.0.0.1:9090:8000 -e SOAP_URL=http://www.thomas-bayer.com/axis2/services/BLZService?wsdl rest-to-soap-unit-helper
 ```
 
 # Systemd
@@ -34,11 +35,15 @@ docker run --name rest-to-soap-unit-helper -d -p 127.0.0.1:9090:8000 rest-to-soa
 There are also systemd unit files included, which can be used to control the containers using systemd
 There will be created a docker network to run the containers into, to be able to e.g. put a reverse proxy before and then combine each individual rest-to-soap-unit to one api
 The containers will be controlled using the environment file, which should be created at
+```
 /etc/rest-to-soap-unit/<systemd service alias>.env
 /etc/rest-to-soap-unit/service.env
+```
 and
+```
 /etc/rest-to-soa-unit/<systemd service alias>-helper.env
 e.g. /etc/rest-to-soap-unit/service-helper.env
+```
 you can then control the service using:
 ```bash
 systemctl start rest-to-soap-unit@service
@@ -69,7 +74,7 @@ the result should be:
 version: '3'
 services:
   rest-to-soap-unit:
-    build: nodejs/
+    build: php/
     image: rest-to-soap-unit:latest
     ports:
       - "127.0.0.1:8080:8000"  # Map port 8000 of docker container to 8080 on localhost
@@ -96,8 +101,7 @@ so e.g. open [http://127.0.0.1:9090/help](http://127.0.0.1:9090/help) in the bro
 
 # BUG IN ZEEP
 
-Because of a bug in zeep I rewrote the rest-to-soap-unit in nodejs.
-The workaround currently is to have two containers, one for the translation from rest to soap and one to be able to autogenerate an openapi specification.
-Because of time, I am currently using this workaround, but in the future, I will also rewrite the openapi specification generator in nodejs.
+Because of a bug in zeep I rewrote the rest-to-soap-unit in php.
+The workaround currently is to have two containers, one for the proxy from rest to soap and one to be able to autogenerate an openapi specification.
 For now, the python container is generating the openapi specification
-and the nodejs container is handling the translation traffic.
+and the php container is handling the proxy traffic.
