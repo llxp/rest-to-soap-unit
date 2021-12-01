@@ -35,12 +35,31 @@ $router->post(
 );
 
 function getSoapClientOptions($authorizationHeader = null, $options = []) {
+    $verify_peer = getenv("VERIFY_PEER");
+    if (!$verify_peer || strlen($verify_peer) <= 0) {
+        $verify_peer = false;
+    } else {
+        $verify_peer = true;
+    }
+    $verify_peer_name = getenv("VERIFY_PEER_NAME");
+    if (!$verify_peer_name || strlen($verify_peer_name) <= 0) {
+        $verify_peer_name = false;
+    } else {
+        $verify_peer_name = true;
+    }
+    $allow_self_signed = getenv("ALLOW_SELF_SIGNED");
+    if (!$allow_self_signed || strlen($allow_self_signed) <= 0) {
+        $allow_self_signed = true;
+    } else {
+        $allow_self_signed = false;
+    }
+    
     $context = stream_context_create([
         'ssl' => [
             // set some SSL/TLS specific options
-            'verify_peer' => false,
-            'verify_peer_name' => false,
-            'allow_self_signed' => true
+            'verify_peer' => $verify_peer,
+            'verify_peer_name' => $verify_peer_name,
+            'allow_self_signed' => $allow_self_signed
         ],
         'http' => [
             'header' => "Authorization: $authorizationHeader"

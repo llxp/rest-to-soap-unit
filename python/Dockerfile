@@ -1,6 +1,7 @@
-FROM nginx/unit:1.19.0-python3.7
+FROM nginx/unit:1.25.0-python3.9
 
 RUN apt update && apt install -y python3-pip && \
+    apt update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /config/

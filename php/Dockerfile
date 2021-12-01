@@ -2,6 +2,8 @@ FROM nginx/unit:1.25.0-php8.0
 
 RUN apt update && \
     apt install lsb-release ca-certificates apt-transport-https software-properties-common gnupg2 libxml2-dev libzip-dev git -y && \
+    dpkg -l && \
+    apt upgrade -y && \
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -L https://www.php.net/distributions/php-8.0.11.tar.gz > /usr/local/src/php-8.0.11.tar.gz && gunzip /usr/local/src/php-8.0.11.tar.gz && tar xvf /usr/local/src/php-8.0.11.tar -C /usr/local/src/ && rm /usr/local/src/php-8.0.11.tar
