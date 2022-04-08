@@ -34,6 +34,13 @@ $router->post(
     }
 );
 
+$router->get(
+    '/health',
+    function () {
+        return response()->json(['status' => 'ok']);
+    }
+);
+
 function getSoapClientOptions($authorizationHeader = null, $options = []) {
     $verify_peer = getenv("VERIFY_PEER");
     if (!$verify_peer || strlen($verify_peer) <= 0) {
