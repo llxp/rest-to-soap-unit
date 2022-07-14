@@ -8,7 +8,7 @@ Requires=docker.socket
 Restart=always
 WorkingDirectory=/root/
 EnvironmentFile=/etc/rest-to-soap-unit/%I-helper.env
-ExecStartPre=/bin/bash -c "/usr/bin/docker network inspect rest-to-soap-unit-network 2> /dev/null || /usr/bin/docker network create -d bridge rest-to-soap-unit-network"
+ExecStartPre=/bin/bash -c "/usr/local/share/rest-to-soap-unit/create_network.sh"
 ExecStartPre=/bin/bash -c "/usr/bin/docker container inspect rest-to-soap-unit-helper_%I 2> /dev/null || /usr/bin/docker run -d --net rest-to-soap-unit-network --name rest-to-soap-unit-helper_%I --hostname rest-to-soap-unit-helper_%I --env-file /etc/rest-to-soap-unit/%I-helper.env -e HTTP_PROXY= -e HTTPS_PROXY= -e http_proxy= -e https_proxy= -p 0.0.0.0:$PUBLISH_PORT:8000 --cpus 1 --memory 1024m --cap-drop=all --tmpfs /var/run/unit:uid=1000,gid=1000 --tmpfs /var/lib/unit/:uid=1000,gid=1000 --tmpfs /var/log/unit/:uid=1000,gid=1000 --read-only --cpu-shares 1023 ${REPO_HOST}/llxp/rest-to-soap-unit-helper:${VERSION}"
 ExecStart=/usr/bin/docker start -a rest-to-soap-unit-helper_%I
 ExecStop=/usr/bin/docker stop -t 10 rest-to-soap-unit-helper_%I
