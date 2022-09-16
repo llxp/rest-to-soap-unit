@@ -30,4 +30,4 @@ COPY config.json /docker-entrypoint.d/
 
 COPY app.py /www/
 
-HEALTHCHECK CMD curl --fail http://localhost:8000/help || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
